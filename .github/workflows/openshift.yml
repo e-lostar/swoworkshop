@@ -33,7 +33,7 @@ name: OpenShift-Akbank
 # ⬇️  Modify the fields marked with ⬇️ to fit your project, and create any secrets that are referenced.
 # https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets
 env:
-  TOKEN ${{ secrets.TOKEN}}
+  TOKEN: ${{ secrets.TOKEN}}
   # ⬇️ EDIT with your registry and registry path.
   REGISTRY: quay.io/elostar
   # ⬇️ EDIT with your registry username.
