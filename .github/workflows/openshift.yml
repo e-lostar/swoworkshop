@@ -65,6 +65,7 @@ on:
 
 jobs:
   openshift-ci:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     name: Build
     runs-on: ubuntu-20.04
 
@@ -120,6 +121,7 @@ jobs:
     #     namespace: ${{ env.OPENSHIFT_NAMESPACE }}
         
   openshift-cd-stage:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     name: CD
     runs-on: ubuntu-20.04
     needs: openshift-ci
@@ -138,6 +140,7 @@ jobs:
        helm upgrade -f ./charts/values.yaml reverseword-stage ./charts --set environment=stage --set namespace=reverse-word-stage-elostar --set tag=workshop -n helm-charts
 
   openshift-cd-prod:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     name: CD
     runs-on: ubuntu-20.04
     # needs: openshift-ci
