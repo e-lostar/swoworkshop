@@ -106,7 +106,7 @@ jobs:
 
     # The path the image was pushed to is now stored in ${{ steps.push-to-registry.outputs.registry-path }}
 
-   openshift-cd:
+  openshift-cd:
      name: CD
      runs-on: ubuntu-20.04
      steps:
