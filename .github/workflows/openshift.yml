@@ -33,6 +33,7 @@ name: OpenShift-Akbank
 # ⬇️  Modify the fields marked with ⬇️ to fit your project, and create any secrets that are referenced.
 # https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets
 env:
+  TOKEN ${{ secrets.TOKEN}}
   # ⬇️ EDIT with your registry and registry path.
   REGISTRY: quay.io/elostar
   # ⬇️ EDIT with your registry username.
@@ -157,3 +158,19 @@ jobs:
     - name: Helm
       run: |
        helm upgrade -f ./charts/values.yaml reverseword ./charts --set environment=prod --set namespace=reverse-word-prod-elostar --set tag=workshop -n helm-charts
+
+  pull-request:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: openshift-cd-stage
+    steps:
+    - uses: actions/checkout@v1
+    - name: pull-request
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: ""
+        destination_branch: "main"
+        pr_title: "pulling github run_id environment variable'ını girin into main"
+        pr_body: ":crown: *An automated PR*"
+        pr_label: "auto-pr"
+        github_token: env.TOKEN
