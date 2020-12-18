@@ -65,8 +65,8 @@ on:
          - main
 
 jobs:
-  openshift-ci-cd:
-    name: Build and deploy to OpenShift
+  openshift-ci:
+    name: Build
     runs-on: ubuntu-20.04
 
     steps:
@@ -106,6 +106,13 @@ jobs:
         password: ${{ env.REGISTRY_PASSWORD }}
 
     # The path the image was pushed to is now stored in ${{ steps.push-to-registry.outputs.registry-path }}
+
+   openshift-cd:
+     name: CD
+     runs-on: ubuntu-20.04
+     steps:
+     - uses: actions/checkout@v2
+     - name: Log in to OpenShift
 
     # oc-login works on all platforms, but oc must be installed first.
     # The GitHub Ubuntu runner already includes oc.
