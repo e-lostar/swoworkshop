@@ -38,6 +38,7 @@ env:
   # ⬇️ EDIT with your registry username.
   REGISTRY_USER: elostar
   REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  OPENSHIFT_NAMESPACE : default
 
   # ⬇️ EDIT to log into your OpenShift cluster and set up the context.
   # See https://github.com/redhat-actions/oc-login#readme for how to retrieve these values.
@@ -59,9 +60,7 @@ on:
   push:
     # Edit to the branch(es) you want to build and deploy on each push.
      branches:
-
          - dev
-
          - main
 
 jobs:
