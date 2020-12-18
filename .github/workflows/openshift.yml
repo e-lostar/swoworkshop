@@ -135,7 +135,7 @@ jobs:
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
     - name: Helm
       run: |
-       helm upgrade -f ./charts/values.yaml reverseword-stage ./charts --set environment=stage --set namespace=reverse-word-stage-elostar --set tag={{ env.TAG }} -n helm-charts
+       helm upgrade -f ./charts/values.yaml reverseword-stage ./charts --set environment=stage --set namespace=reverse-word-stage-elostar --set tag=workshop -n helm-charts
 
   openshift-cd-prod:
     name: CD
@@ -153,4 +153,4 @@ jobs:
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
     - name: Helm
       run: |
-       helm upgrade -f ./charts/values.yaml reverseword ./charts --set environment=prod --set namespace=reverse-word-prod-elostar --set tag={{ env.TAG }} -n helm-charts
+       helm upgrade -f ./charts/values.yaml reverseword ./charts --set environment=prod --set namespace=reverse-word-prod-elostar --set tag=workshop -n helm-charts
