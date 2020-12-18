@@ -119,7 +119,7 @@ jobs:
     #     insecure_skip_tls_verify: true
     #     namespace: ${{ env.OPENSHIFT_NAMESPACE }}
         
-  openshift-cd:
+  openshift-cd-stage:
     name: CD
     runs-on: ubuntu-20.04
     needs: openshift-ci
@@ -133,3 +133,24 @@ jobs:
         openshift_token: ${{ env.OPENSHIFT_TOKEN }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+    - name: Helm
+      run: |
+       helm upgrade -f ./charts/values.yaml reverseword-stage ./charts --set environment=stage --set namespace=reverse-word-stage-elostar --set tag={{ env.TAG }} -n helm-charts
+
+  openshift-cd-prod:
+    name: CD
+    runs-on: ubuntu-20.04
+    # needs: openshift-ci
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Log in to OpenShift
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+        openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+    - name: Helm
+      run: |
+       helm upgrade -f ./charts/values.yaml reverseword ./charts --set environment=prod --set namespace=reverse-word-prod-elostar --set tag={{ env.TAG }} -n helm-charts
