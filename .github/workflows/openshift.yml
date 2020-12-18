@@ -173,4 +173,4 @@ jobs:
         pr_title: "pulling github run_id environment variable'ını girin into main"
         pr_body: ":crown: *An automated PR*"
         pr_label: "auto-pr"
-        github_token: env.TOKEN
+        github_token: ${{ env.TOKEN }}
