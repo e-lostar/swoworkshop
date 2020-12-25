@@ -28,16 +28,18 @@
 # For a more sophisticated example, see https://github.com/redhat-actions/spring-petclinic/blob/main/.github/workflows/petclinic-sample.yaml
 # Also see our GitHub organization, https://github.com/redhat-actions/
 
-name: OpenShift
+name: OpenShift-Akbank
 
 # ⬇️  Modify the fields marked with ⬇️ to fit your project, and create any secrets that are referenced.
 # https://docs.github.com/en/free-pro-team@latest/actions/reference/encrypted-secrets
 env:
+  TOKEN: ${{ secrets.TOKEN}}
   # ⬇️ EDIT with your registry and registry path.
-  REGISTRY: quay.io/<username>
+  REGISTRY: quay.io/elostar
   # ⬇️ EDIT with your registry username.
-  REGISTRY_USER: <username>
+  REGISTRY_USER: elostar
   REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  OPENSHIFT_NAMESPACE : default
 
   # ⬇️ EDIT to log into your OpenShift cluster and set up the context.
   # See https://github.com/redhat-actions/oc-login#readme for how to retrieve these values.
@@ -45,33 +47,37 @@ env:
   OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
 
   # ⬇️ EDIT with the port your application should be accessible on.
-  APP_PORT: 8080
+  #APP_PORT: 8080
 
   # ⬇️ EDIT if you wish to set the kube context's namespace after login. Leave blank to use the default namespace.
-  OPENSHIFT_NAMESPACE: ""
+  #OPENSHIFT_NAMESPACE: ""
 
   # If you wish to manually provide the APP_NAME and TAG, set them here, otherwise they will be auto-detected.
-  APP_NAME: ""
-  TAG: ""
+  APP_NAME: reversewords
+  TAG: workshop
 
 on:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
   push:
     # Edit to the branch(es) you want to build and deploy on each push.
-    branches: [ master ]
+     branches:
+         - dev
+         - main
 
 jobs:
-  openshift-ci-cd:
-    name: Build and deploy to OpenShift
+  openshift-ci:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    name: Build
     runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Determine app name
-      if: env.APP_NAME == ''
+    - name: Unit Test
       run: |
-        echo "APP_NAME=$(basename $PWD)" | tee -a $GITHUB_ENV
+        docker build -t reverseword_test:latest -f Dockerfile.test .
+        docker images
+        docker run reverseword_test:latest
 
     - name: Determine tag
       if: env.TAG == ''
@@ -108,6 +114,22 @@ jobs:
     # Otherwise, https://github.com/redhat-actions/oc-installer#readme is available.
 
     # https://github.com/redhat-actions/oc-login#readme
+    # - name: Log in to OpenShift
+    #   uses: redhat-actions/oc-login@v1
+    #   with:
+    #     openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+    #     openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+    #     insecure_skip_tls_verify: true
+    #     namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+        
+  openshift-cd-stage:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    name: CD
+    runs-on: ubuntu-20.04
+    needs: openshift-ci
+    
+    steps:
+    - uses: actions/checkout@v2
     - name: Log in to OpenShift
       uses: redhat-actions/oc-login@v1
       with:
@@ -115,38 +137,41 @@ jobs:
         openshift_token: ${{ env.OPENSHIFT_TOKEN }}
         insecure_skip_tls_verify: true
         namespace: ${{ env.OPENSHIFT_NAMESPACE }}
-
-    # This step should create a deployment, service, and route to run your app and expose it to the internet.
-    # Feel free to replace this with 'oc apply', 'helm install', or however you like to deploy your app.
-    - name: Create and expose app
+    - name: Helm
       run: |
-        export IMAGE="${{ steps.push-to-registry.outputs.registry-path }}"
-        export PORT=${{ env.APP_PORT }}
+       helm upgrade -f ./charts/values.yaml reverseword-stage ./charts --set environment=stage --set namespace=reverse-word-stage-elostar --set tag=workshop -n helm-charts
 
-        export SELECTOR="app=${{ env.APP_NAME }}"
-        echo "SELECTOR=$SELECTOR" >> $GITHUB_ENV
-
-        set -x
-        # Take down any old deployment
-        oc delete all --selector="$SELECTOR"
-        oc new-app --name $APP_NAME --docker-image="$IMAGE"
-
-        # Make sure the app port is exposed
-        oc patch svc $APP_NAME -p "{ \"spec\": { \"ports\": [{ \"name\": \"$PORT-tcp\", \"port\": $PORT }] } }"
-        oc expose service $APP_NAME --port=$PORT
-
-        oc get all --selector="$SELECTOR"
-        set +x
-
-        export ROUTE="$(oc get route $APP_NAME -o jsonpath='{.spec.host}')"
-        echo "$APP_NAME is exposed at $ROUTE"
-        echo "ROUTE=$ROUTE" >> $GITHUB_ENV
-
-    - name: View application route
+  openshift-cd-prod:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    name: CD
+    runs-on: ubuntu-20.04
+    # needs: openshift-ci
+    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Log in to OpenShift
+      uses: redhat-actions/oc-login@v1
+      with:
+        openshift_server_url: ${{ env.OPENSHIFT_SERVER }}
+        openshift_token: ${{ env.OPENSHIFT_TOKEN }}
+        insecure_skip_tls_verify: true
+        namespace: ${{ env.OPENSHIFT_NAMESPACE }}
+    - name: Helm
       run: |
-        [[ -n ${{ env.ROUTE }} ]] || (echo "Determining application route failed in previous step"; exit 1)
-        echo "======================== Your application is available at: ========================"
-        echo ${{ env.ROUTE }}
-        echo "==================================================================================="
-        echo
-        echo "Your app can be taken down with: \"oc delete all --selector='${{ env.SELECTOR }}'\""
+       helm upgrade -f ./charts/values.yaml reverseword ./charts --set environment=prod --set namespace=reverse-word-prod-elostar --set tag=workshop -n helm-charts
+
+  pull-request:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: openshift-cd-stage
+    steps:
+    - uses: actions/checkout@v1
+    - name: pull-request
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: ""
+        destination_branch: "main"
+        pr_title: "pulling github run_id environment variable'ını girin into main"
+        pr_body: ":crown: *An automated PR*"
+        pr_label: "auto-pr"
+        github_token: ${{ env.TOKEN }}
