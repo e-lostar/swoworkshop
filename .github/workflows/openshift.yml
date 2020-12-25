@@ -53,8 +53,8 @@ env:
   #OPENSHIFT_NAMESPACE: ""
 
   # If you wish to manually provide the APP_NAME and TAG, set them here, otherwise they will be auto-detected.
-  APP_NAME: "workshop"
-  TAG: "reversewords"
+  APP_NAME: reversewords
+  TAG: workshop
 
 on:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/events-that-trigger-workflows
@@ -73,10 +73,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Determine app name
-      if: env.APP_NAME == ''
+    - name: Unit Test
       run: |
-        echo "APP_NAME=$(basename $PWD)" | tee -a $GITHUB_ENV
+        docker build -t reverseword_test:latest -f Dockerfile.test .
+        docker images
+        docker run reverseword_test:latest
 
     - name: Determine tag
       if: env.TAG == ''
